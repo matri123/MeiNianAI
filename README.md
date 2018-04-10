@@ -1,0 +1,2 @@
+# MeiNianAI
+competition code
