@@ -8,15 +8,13 @@ data_select_form = pd.read_csv(round1_data_select, low_memory=False)
 # print(data_select_form)
 
 selectList = [
-    'vid', '0102', '0113', '0114', '0117', '1001', '1814', '1815', '1840',
-    '1850', '190', '191', '2302', '2403', '2404', '2405', '3190', '3191',
-    '3192', '3193', '3195', '3196', '3197', '3430'
+    'vid', '1814', '1815', '1840', '1850', '190', '191', '2302', '2403',
+    '2404', '2405', '3190', '3191', '3192', '3193', '3195', '3196', '3197',
+    '3430'
 ]
 
 data_select = data_select_form[selectList].copy()
-
-# print(data_select['0102'].head())
-# print(data_select['0113'].value_counts())
+# print(data_select['1840'].head())
 
 na_col = data_select.dtypes[data_select.isnull().any()]
 # print(na_col)
@@ -26,7 +24,7 @@ mapper = {'2302': {'健康': 0, '亚健康': 1, '疾病': 2}}
 
 
 def fuhao_map(fuhao):
-    if fuhao == '阴性' or fuhao == '正常' or fuhao == 'Normal' or fuhao == 'NormaL':
+    if fuhao == '阴性':
         return 1
     if fuhao == '阳性':
         return 5
@@ -36,7 +34,7 @@ def fuhao_map(fuhao):
     num_plus = len(re.findall(re.compile(".*?(\+).*?"), fuhao))
     # 数据中'-'个数
     num_minus = len(re.findall(re.compile(".*?(\-).*?"), fuhao))
-    # 只有若干个'-'，无'+',与阴性结果相同，返回 1
+    # 只有一个'-'，无'+',与阴性结果相同，返回 1
     if num_minus >= 1 and num_plus == 0:
         return 1
     # 一个'+'，若干个'-'，返回2
@@ -54,8 +52,9 @@ def chara_map(chara):
     chara = str(chara).replace('。', '.')
     # 匹配出数字，取第一个，因为数据中类似'14.0 14.0'的重复的脏数据
     reg_label = re.findall(re.compile('\d.*\d'), str(chara))
+    # reg_label = str(chara).split(' ')[0]
     if reg_label:
-        return reg_label[0]
+        return reg_label[0].split(' ')[0]
     # 没有匹配出数字，说明是'未查' or'弃查'
     else:
         return '0'
@@ -71,44 +70,7 @@ def jiankang(chara):
         return '疾病'
 
 
-def map_1001(des):
-    des = str(des)
-    if '不齐' in des or '过缓' in des or '左室高电压' in des or '左偏' in des or '右偏' in des or '低平' in des or '阻滞' in des:
-        return 1
-    else:
-        return 0
-
-
-def map_0113(des):
-    des = str(des)
-    if '密集弥漫性增强' in des or '欠清晰' in des:
-        return 1
-    else:
-        return 0
-
-
-def map_0114(des):
-    des = str(des)
-    if '囊壁毛糙' in des or '较强回声附着' in des:
-        return 1
-    else:
-        return 0
-
-
-# 可能有浮点型，需要类型转换
-def map_0117(des):
-    des = str(des)
-    if '无回声区' in des or '强回声' in des:
-        return 1
-    else:
-        return 0
-
-
-feature_list_one = [
-    '1814', '1815', '1840', '1850', '190', '191', '2302', '2403', '2404',
-    '2405', '3190', '3191', '3192', '3193', '3195', '3196', '3197', '3430'
-]
-for col in feature_list_one:
+for col in na_col.index:
     if col == '1814' or col == '1840' or col == '1850' or col == '190' or col == '191' or col == '3193':
         data_select[col] = data_select[col].apply(chara_map)
         data_select[col] = pd.DataFrame(data_select[col], dtype=np.float)
@@ -134,25 +96,10 @@ for col in feature_list_one:
         data_select[col].fillna('0', inplace=True)
         data_select[col] = data_select[col].apply(fuhao_map)
 
-feature_list_two = ['0102', '0113', '0114', '0117', '1001']
-
-for col in feature_list_two:
-    if col == '1001':
-        data_select[col] = data_select[col].apply(map_1001)
-    elif col == '0102':
-        data_select[col] = data_select[col].apply(
-            lambda x: 1 if '脂肪肝' in str(x) else 0)
-    elif col == '0113':
-        data_select[col] = data_select[col].apply(map_0113)
-    elif col == '0114':
-        data_select[col] = data_select[col].apply(map_0114)
-    elif col == '0117':
-        data_select[col] = data_select[col].apply(map_0117)
-    else:
-        pass
+data_select['BMI'] = data_select['2403'] / ((data_select['2404'] / 100)**2)
 
 print('测试集，训练集的列数为：{0}，行数为：{1}'.format(data_select.columns.size,
                                        data_select.iloc[:, 0].size))
 
 data_select.to_csv(
-    'data/feature_total_data_3.csv', index=None, encoding="utf-8")
+    'data/feature_total_data_0415.csv', index=None, encoding="utf-8")
